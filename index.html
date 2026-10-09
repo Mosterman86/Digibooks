@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>DigiBooks — Wolfsonian</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="digibooks-theme.css">
+<style>
+  /* Reset, color tokens (--ink/--paper/--mid/--accent), font-size
+     tokens (--fs-label/--fs-button), and .wordmark now live in
+     digibooks-theme.css. Only page-specific rules stay here. */
+
+  body {
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #111 100%);
+    z-index: -1;
+  }
+
+  header {
+    max-width: 900px;
+    margin: 40px auto 20px;
+    padding: 0 40px;
+    text-align: center;
+  }
+
+  /* Layout-only additions to the shared .wordmark rule for this page */
+  .wordmark {
+    letter-spacing: 0.3em;
+    color: var(--mid, #999);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 300; letter-spacing: 0.05em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  .intro-text {
+    font-size: 16px; font-weight: 300;
+    color: var(--mid, #999); max-width: 750px;
+    margin: 0 auto; letter-spacing: 0.02em;
+  }
+
+  /* ── SORT CONTROLS ── */
+  .controls-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  
+  .controls-bar span {
+    color: var(--mid, #999); 
+    font-size: var(--fs-label, 15px); 
+    text-transform: uppercase; 
+    letter-spacing: 0.15em; 
+    margin-right: 12px;
+  }
+  
+  .controls-bar select {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f0f0f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    appearance: none;
+    -webkit-appearance: none;
+    color: var(--paper, #f0f0f0);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 0; /* Prevents iOS default rounding */
+    padding: 6px 32px 6px 14px;
+    min-width: 210px;
+    font-family: inherit;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .controls-bar select:hover {
+    border-color: rgba(255,255,255,0.5);
+  }
+
+  .controls-bar select option {
+    background: var(--ink, #111);
+    color: var(--paper, #f0f0f0);
+  }
+
+  .shelf-container {
+    max-width: 1200px;
+    margin: 0 auto 100px;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 40px;
+  }
+
+  .book-card {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    background: #181818;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.2, 0, 0.2, 1);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 0; /* Enforcing sharp corners */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+
+  .book-card:hover {
+    transform: translateY(-12px);
+    border-color: rgba(255,255,255,0.25);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  }
+
+  .book-cover {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: all 0.6s ease;
+  }
+
+  .book-overlay {
+    position: absolute; inset: 0;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 40px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 2;
+  }
+
+  .book-card:hover .book-overlay,
+  .book-card.active .book-overlay {
+    opacity: 1;
+  }
+
+  .book-overlay h2 {
+    font-size: 18px; font-weight: 600;
+    margin-bottom: 18px; text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--paper, #f0f0f0);
+    line-height: 1.3;
+  }
+
+  .book-overlay p {
+    font-size: 14px; font-weight: 300;
+    color: #bbb; 
+    line-height: 1.7;
+    margin-bottom: 28px;
+    max-width: 260px;
+  }
+
+  .btn-open {
+    padding: 12px 30px;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 0; /* Enforcing sharp corners */
+    background: transparent;
+    color: var(--paper, #f0f0f0);
+    font-size: var(--fs-button, 14px); text-transform: uppercase;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-open:hover {
+    background: var(--paper, #f0f0f0);
+    color: var(--ink, #111);
+    border-color: var(--paper, #f0f0f0);
+  }
+
+  /* ── WIDE DESKTOP MONITORS (mouse-driven, no touch) ──
+     Placed before the touch block on purpose: if a screen matches
+     both (a wide touchscreen), the touch rule below comes later in
+     the cascade and correctly wins for shared properties, keeping
+     the touch-optimized 3-column treatment on touch devices. This
+     rule only ends up controlling non-touch wide monitors. */
+  @media (min-width: 1441px) {
+    .shelf-container {
+      max-width: 1600px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+  }
+
+  /* ── IPAD KIOSK TYPOGRAPHY INFLATION ── */
+  @media (min-width: 601px) and (pointer: coarse) {
+    header { 
+      margin: 60px auto 20px; 
+      max-width: 90%; 
+    }
+    .wordmark { 
+      margin-bottom: 12px; 
+    }
+    h1 { 
+      font-size: 52px; 
+      margin-bottom: 10px; 
+    }
+    .intro-text { 
+      font-size: 22px; 
+      max-width: 900px; 
+      line-height: 1.6; 
+    }
+    
+    .controls-bar { 
+      margin-bottom: 50px; 
+    }
+    .controls-bar span { 
+      margin-right: 18px; 
+    }
+    .controls-bar select { 
+      font-size: 18px; 
+      padding: 12px 48px 12px 20px; 
+      background-position: right 16px center; 
+      min-width: 260px;
+    }
+
+    .shelf-container {
+      max-width: 92%; /* Allows grid to span much wider on the iPad screen */
+      gap: 36px; 
+      padding: 0;
+      /* Forces exactly 3 columns regardless of minimum size */
+      grid-template-columns: repeat(3, 1fr); 
+    }
+    
+    .book-overlay { 
+      padding: 30px; 
+    }
+    .book-overlay h2 { 
+      font-size: 24px; 
+      margin-bottom: 16px; 
+    }
+    .book-overlay p { 
+      font-size: 16px; 
+      max-width: 320px; 
+      margin-bottom: 30px; 
+    }
+    .btn-open { 
+      padding: 16px 40px; 
+    }
+  }
+
+  @media (max-width: 600px) {
+    header { margin-top: 30px; padding: 0 24px; }
+    h1 { font-size: 26px; }
+    .shelf-container { grid-template-columns: 1fr; padding: 0 30px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="wordmark">The Wolfsonian–FIU</span>
+  <h1>DigiBooks</h1>
+  <p class="intro-text">
+    Welcome to DigiBooks, a repository of historical books and portfolios at The Wolfsonian–FIU.<br>
+    Select a cover to explore what's inside.
+  </p>
+</header>
+
+<div class="controls-bar">
+  <span>Sort By</span>
+  <select id="sort-select" onchange="sortBooks()">
+    <option value="title-asc">Title (A-Z)</option>
+    <option value="title-desc">Title (Z-A)</option>
+    <option value="year-asc" selected>Date (Oldest First)</option>
+    <option value="year-desc">Date (Newest First)</option>
+  </select>
+</div>
+
+<main class="shelf-container" id="library-grid">
+
+  <div class="book-card" data-title="Bruynzeel's Fabrieken Zaandam" data-year="1931" onclick="this.classList.toggle('active')">
+    <img src="bruynzeel/pages/1.webp" alt="Bruynzeel's Fabrieken Zaandam, 1931" class="book-cover" style="object-fit: contain; background: var(--ink, #111);">
+    <div class="book-overlay">
+      <h2>Bruynzeel's Fabrieken, 1931</h2>
+      <p>
+        Vilmos Huszár, a founder of the Dutch avant-garde De Stijl movement, combined photography and typography to tell the history of the Bruynzeel wood factory in this promotional album.
+      </p>
+      <button class="btn-open" onclick="location.href='bruynzeel/bruynzeel.html'">Open Book</button>
+    </div>
+  </div>
+
+  <div class="book-card" data-title="Het boek van PTT" data-year="1938" onclick="this.classList.toggle('active')">
+    <img src="hetboekvanptt/pages/1.webp" alt="Het boek van PTT, 1938" class="book-cover">
+    <div class="book-overlay">
+      <h2>Het boek van PTT, 1938</h2>
+      <p>
+        Graphic and industrial designer Piet Zwart created this book to introduce schoolchildren to the Dutch postal, telegraph, and telephone services, using graphics inspired by avant-garde influences, such as De Stijl and Constructivism.
+      </p>
+      <button class="btn-open" onclick="location.href='hetboekvanptt/hetboekvanptt.html'">Open Book</button>
+    </div>
+  </div>
+  
+  <div class="book-card" data-title="Industrial Design, A Practical Guide" data-year="1940" onclick="this.classList.toggle('active')">
+    <img src="industrial/pages/1.webp" alt="Industrial Design, A Practical Guide, 1940" class="book-cover">
+    <div class="book-overlay">
+      <h2>Industrial Design, 1940</h2>
+      <p>
+        An early consulting designer, Harold Van Doren wrote this practical, how-to manual to champion the principle of streamlining.
+      </p>
+      <button class="btn-open" onclick="location.href='industrial/industrial.html'">Open Book</button>
+    </div>
+  </div>
+
+  <div class="book-card" data-title="Insectes" data-year="1925" onclick="this.classList.toggle('active')">
+    <img src="insects/pages/1.webp" alt="Insectes, c. 1925" class="book-cover">
+    <div class="book-overlay">
+      <h2>Insectes, c. 1925</h2>
+      <p>
+        Intending to inspire modern artists and designers, Émile-Allain Séguy combined precise renderings of various insects with decorative patterns based on their forms.
+      </p>
+      <button class="btn-open" onclick="location.href='insects/insects.html'">Open Book</button>
+    </div>
+  </div>
+
+  <div class="book-card" data-title="Papillons" data-year="1925" onclick="this.classList.toggle('active')">
+    <img src="papillons/pages/1.webp" alt="Papillons, c. 1925" class="book-cover">
+    <div class="book-overlay">
+      <h2>Papillons, c. 1925</h2>
+      <p>
+        Intending to inspire modern artists and designers, Émile-Allain Séguy combined precise renderings of butterflies and moths with decorative patterns based on their forms.
+      </p>
+      <button class="btn-open" onclick="location.href='papillons/papillons.html'">Open Book</button>
+    </div>
+  </div>
+
+  <div class="book-card" data-title="The Rime of the Ancient Mariner" data-year="1875" onclick="this.classList.toggle('active')">
+    <img src="mariner/pages/1.webp" alt="The Rime of the Ancient Mariner, 1875" class="book-cover">
+    <div class="book-overlay">
+      <h2>Ancient Mariner, 1875</h2>
+      <p>
+        This edition of Samuel Taylor Coleridge's 1798 poem features illustrations by French artist Gustave Doré that match Coleridge's intensely subjective Romantic style.
+      </p>
+      <button class="btn-open" onclick="location.href='mariner/mariner.html'">Open Book</button>
+    </div>
+  </div>
+
+  <div class="book-card" data-title="Une ambassade francaise" data-year="1925" onclick="this.classList.toggle('active')">
+    <img src="afrenchambassy/pages/1.webp" alt="Une ambassade française, 1925" class="book-cover">
+    <div class="book-overlay">
+      <h2>Une ambassade française, 1925</h2>
+      <p>
+        The Société des Artistes Décorateurs exhibited a suite of interiors titled Une ambassade française at the Paris international exposition of 1925. This portfolio shows the rooms as hand-stenciled renderings, together with photos of the completed rooms.
+      </p>
+      <button class="btn-open" onclick="location.href='afrenchambassy/afrenchambassy.html'">Open Book</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function sortBooks() {
+    const container = document.getElementById('library-grid');
+    const cards = Array.from(container.querySelectorAll('.book-card'));
+    const sortBy = document.getElementById('sort-select').value;
+
+    cards.sort((a, b) => {
+      if (sortBy === 'title-asc') {
+        return a.dataset.title.localeCompare(b.dataset.title);
+      } else if (sortBy === 'title-desc') {
+        return b.dataset.title.localeCompare(a.dataset.title);
+      } else if (sortBy === 'year-asc') {
+        return parseInt(a.dataset.year) - parseInt(b.dataset.year);
+      } else if (sortBy === 'year-desc') {
+        return parseInt(b.dataset.year) - parseInt(a.dataset.year);
+      }
+    });
+
+    // Clear and re-append in the new sorted order
+    container.innerHTML = '';
+    cards.forEach(card => container.appendChild(card));
+  }
+
+  // Apply the default sort order (Oldest First) on page load
+  sortBooks();
+
+  // KIOSK FEATURE: IDLE SCROLL RESET
+  const IDLE_TIMEOUT_MS = 180000; // 3 minutes
+  let idleTimer;
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      // Scroll back to the top smoothly
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Reset the sorting back to the default (Oldest First)
+      document.getElementById('sort-select').value = 'year-asc';
+      sortBooks();
+      
+      // Close any open book overlays
+      document.querySelectorAll('.book-card.active').forEach(card => {
+        card.classList.remove('active');
+      });
+    }, IDLE_TIMEOUT_MS);
+  }
+
+  // Listen for typical iPad kiosk interactions to reset the timer
+  document.addEventListener('touchstart', resetIdleTimer, { passive: true });
+  document.addEventListener('touchend', resetIdleTimer, { passive: true });
+  document.addEventListener('mousemove', resetIdleTimer);
+  document.addEventListener('scroll', resetIdleTimer, { passive: true });
+  
+  // Start timer on load
+  resetIdleTimer();
+</script>
+
+</body>
+</html>

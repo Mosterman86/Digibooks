@@ -1,0 +1,84 @@
+/* ============================================================
+   Wolfsonian DigiBooks — Shared Design System
+   Link this file from index.html AND every individual book
+   viewer (one level down, so use "../assets/digibooks-theme.css").
+
+   Anything that reads a var(--fs-*) or var(--ink/--paper/--mid)
+   token gets fixed everywhere at once when you edit it here.
+   Page-specific layout (grid columns, button widths, card sizes,
+   paragraph copy in fixed-size containers, etc.) stays local to
+   each file, since those need individual attention per layout.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Color tokens */
+  --ink: #111;
+  --paper: #f0f0f0;
+  --mid: #999;
+  --accent: #fff;
+
+  /* Accessible type-size tokens.
+     Baseline values below were audited for WCAG contrast (all pass
+     AA comfortably) — the fix here is size, not color. Previous
+     values across the site ranged from 10px–13px for this class of
+     text (eyebrow labels, page counters, small buttons, hints). */
+  --fs-label: 15px;   /* wordmark, page counters, hints, loading text, small caps labels */
+  --fs-button: 14px;  /* small text buttons like "Open Book" */
+}
+
+html, body {
+  font-family: 'Source Sans 3', 'Aptos', 'Calibri', 'Segoe UI', Arial, sans-serif;
+  background: var(--ink, #111);
+  color: var(--paper, #f0f0f0);
+}
+
+/* Kiosk protections shared by every page */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.wordmark {
+  font-weight: 600;
+  font-size: var(--fs-label, 15px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper, #f0f0f0);
+}
+
+/* iPad / tablet kiosk: scale the shared type tokens up for touch
+   viewing. Add layout-only tweaks (button/touch-target sizes, grid
+   columns, etc.) in each page's own stylesheet — this block only
+   owns the font-size tokens so it's the single place to adjust. */
+@media (min-width: 601px) and (pointer: coarse) {
+  :root {
+    --fs-label: 18px;
+    --fs-button: 18px;
+  }
+}
+
+/* Object tombstone / credit-line info, shown under a book's description
+   when it's open. Mirrors standard museum wall-label conventions: a bold
+   title line, then lighter detail lines (maker, publisher, credit line). */
+.tombstone {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.25);
+  font-size: var(--fs-label, 15px);
+  line-height: 1.6;
+}
+.tombstone p {
+  margin: 0 0 4px;
+  color: var(--mid, #999);
+}
+.tombstone p:last-child {
+  margin-bottom: 0;
+}
+.tombstone p.tombstone-title {
+  font-weight: 600;
+  color: var(--paper, #f0f0f0);
+}
+
